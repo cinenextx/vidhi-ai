@@ -716,13 +716,16 @@ async function sendMsg() {
     const msgs = history.slice(-16);
     msgs[msgs.length-1] = {role:'user', content: contextMsg};
 
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
+    const r = await fetch('/api/chat', {
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':keys.claude,'anthropic-version':'2023-06-01'},
-      body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,system:SYSTEM,messages:msgs})
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        apiKey: keys.claude,
+        payload: {model:'claude-sonnet-4-5',max_tokens:1000,system:SYSTEM,messages:msgs}
+      })
     });
     const d = await r.json();
-    if (d.error) throw new Error(d.error.message);
+    if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
     const reply = d.content?.map(c=>c.text||'').join('') || 'Kuch hua yaar. Dobara bolein.';
     removeTyping();
     addV(reply);
