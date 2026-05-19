@@ -763,27 +763,67 @@ function initVoice() {
   const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
   if (!SR) return;
   recognition = new SR();
-  recognition.lang='hi-IN'; recognition.continuous=false; recognition.interimResults=false;
+  recognition.lang='hi-IN';
+  recognition.continuous=false;
+  recognition.interimResults=false;
+
   recognition.onresult = (e) => {
-    const t = e.results[0][0].transcript;
+    const t = e.results[0][0].transcript.trim();
+    if (!t) return;
     document.getElementById('chatInput').value = t;
-    toggleVoice(); sendMsg();
+    // Stop listening state
+    listening = false;
+    document.getElementById('vbtn').className='hbtn';
+    document.getElementById('vbtn').textContent='🎤 VOICE';
+    document.getElementById('clapSt').textContent='READY';
+    // Send message
+    sendMsg();
   };
-  recognition.onerror = () => { listening=false; document.getElementById('vbtn').className='hbtn'; document.getElementById('vbtn').textContent='🎤 VOICE'; };
-  recognition.onend = () => { if(listening){listening=false;document.getElementById('vbtn').className='hbtn';document.getElementById('vbtn').textContent='🎤 VOICE';} };
+
+  recognition.onerror = (e) => {
+    console.log('Voice error:', e.error);
+    listening=false;
+    document.getElementById('vbtn').className='hbtn';
+    document.getElementById('vbtn').textContent='🎤 VOICE';
+    document.getElementById('clapSt').textContent='READY';
+    if (e.error === 'no-speech') {
+      addV("Kalpesh ji, awaaz nahi aayi — dobara taali bajayein ya 🎤 VOICE button dabayein! 😊");
+    }
+  };
+
+  recognition.onend = () => {
+    if (listening) {
+      listening=false;
+      document.getElementById('vbtn').className='hbtn';
+      document.getElementById('vbtn').textContent='🎤 VOICE';
+      document.getElementById('clapSt').textContent='READY';
+    }
+  };
 }
 
 function toggleVoice() {
-  if (!recognition) { addV("Kalpesh ji, Chrome browser mein voice kaam karta hai — please Chrome use karein! 😊"); return; }
+  if (!recognition) {
+    addV("Kalpesh ji, Chrome browser mein voice kaam karta hai — please Chrome use karein! 😊");
+    return;
+  }
   if (listening) {
-    listening=false; recognition.stop();
+    listening=false;
+    try { recognition.stop(); } catch(e) {}
     document.getElementById('vbtn').className='hbtn';
     document.getElementById('vbtn').textContent='🎤 VOICE';
+    document.getElementById('clapSt').textContent='READY';
   } else {
-    listening=true; recognition.start();
+    window.speechSynthesis.cancel(); // Stop any speech before listening
+    listening=true;
+    try { recognition.start(); } catch(e) {
+      listening=false;
+      addV("Kalpesh ji, mic access do — browser mein permission allow karein! 😊");
+      return;
+    }
     document.getElementById('vbtn').className='hbtn listening';
     document.getElementById('vbtn').textContent='🔴 SUN RAHI...';
-    speak("Boliye Kalpesh ji!");
+    document.getElementById('clapSt').textContent='SUN RAHI...';
+    speak("Boliye!");
   }
 }
 
@@ -827,9 +867,44 @@ function onDoubleClap() {
     document.getElementById('clapSt').textContent='READY';
   },1500);
   switchTab('chat');
-  addV("Wah Kalpesh ji! 2 taali bajaya — style toh dekho! 😄 Boliye, main sun rahi hoon!");
-  speak("Haan Kalpesh ji, boliye!");
-  if (recognition && !listening) setTimeout(()=>toggleVoice(),800);
+
+  // Stop any ongoing speech first
+  window.speechSynthesis.cancel();
+
+  // Show message
+  addV("Haan Kalpesh ji! 😊 Boliye — main sun rahi hoon...");
+
+  // Speak then listen — voice starts AFTER speaking finishes
+  const u = new SpeechSynthesisUtterance("Haan Kalpesh ji, boliye!");
+  u.lang = 'hi-IN'; u.rate = 1; u.pitch = 1.1; u.volume = 0.85;
+  const vs = window.speechSynthesis.getVoices();
+  const hv = vs.find(v=>v.lang==='hi-IN')||vs.find(v=>v.lang.startsWith('hi'));
+  if (hv) u.voice = hv;
+
+  // Start listening AFTER speech ends
+  u.onend = () => {
+    if (recognition && !listening) {
+      setTimeout(() => {
+        listening = true;
+        try { recognition.start(); } catch(e) {}
+        document.getElementById('vbtn').className = 'hbtn listening';
+        document.getElementById('vbtn').textContent = '🔴 SUN RAHI...';
+        document.getElementById('clapSt').textContent = 'SUN RAHI...';
+        // Auto stop after 8 seconds if no speech
+        setTimeout(() => {
+          if (listening) {
+            listening = false;
+            try { recognition.stop(); } catch(e) {}
+            document.getElementById('vbtn').className = 'hbtn';
+            document.getElementById('vbtn').textContent = '🎤 VOICE';
+            document.getElementById('clapSt').textContent = 'READY';
+          }
+        }, 8000);
+      }, 300);
+    }
+  };
+
+  window.speechSynthesis.speak(u);
 }
 </script>
 </body>
