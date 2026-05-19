@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIDHI — Kalpesh ki AI Dost</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+Devanagari:wght@400;500;700&family=Share+Tech+Mono&display=swap');
+:root {
+  --bg:#000408;--holo:#00d4ff;--holo2:#0088cc;--holo3:#00ffcc;
+  --gold:#ffd700;--red:#ff3333;--pink:#ff69b4;--green:#00ff88;
+  --card:rgba(0,212,255,0.04);--border:rgba(0,212,255,0.15);
+  --text:#c8f0ff;--muted:rgba(0,212,255,0.35);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Orbitron',monospace;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.02) 1px,transparent 1px);background-size:40px 40px;animation:gridMove 25s linear infinite;pointer-events:none;z-index:0;}
+@keyframes gridMove{to{transform:translateY(40px);}}
+body::after{content:'';position:fixed;top:-2px;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--holo),transparent);animation:scan 5s linear infinite;pointer-events:none;z-index:1;opacity:0.3;}
+@keyframes scan{to{top:100%;}}
+
+/* APP LAYOUT */
+.app{position:relative;z-index:2;display:flex;flex-direction:column;height:100vh;max-width:980px;margin:0 auto;}
+
+/* HEADER */
+.header{display:flex;align-items:center;gap:12px;padding:0.75rem 1.25rem;border-bottom:1px solid var(--border);background:rgba(0,4,8,0.95);backdrop-filter:blur(10px);flex-shrink:0;flex-wrap:wrap;}
+.arc{width:44px;height:44px;position:relative;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.ar{position:absolute;border-radius:50%;border:1.5px solid;}
+.ar1{inset:0;border-color:var(--holo);animation:rot 6s linear infinite;border-style:dashed;}
+.ar2{inset:9px;border-color:var(--holo3);animation:rot 4s linear infinite reverse;}
+.ar3{inset:18px;border-color:var(--gold);animation:rot 2.5s linear infinite;}
+.arc-c{width:12px;height:12px;border-radius:50%;background:radial-gradient(circle,white,var(--holo));box-shadow:0 0 12px var(--holo),0 0 24px var(--holo2);animation:cp 2s ease-in-out infinite;z-index:1;}
+@keyframes rot{to{transform:rotate(360deg);}}
+@keyframes cp{50%{box-shadow:0 0 20px var(--holo),0 0 40px var(--holo2);transform:scale(1.2);}}
+.header-info{flex:1;min-width:120px;}
+.vtitle{font-size:1.2rem;font-weight:900;letter-spacing:0.2em;color:var(--holo);text-shadow:0 0 15px var(--holo);}
+.vstatus{font-size:0.6rem;color:var(--muted);font-family:'Share Tech Mono',monospace;letter-spacing:0.08em;}
+
+/* HUD WIDGETS ROW */
+.hud-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.hud-widget{background:var(--card);border:1px solid var(--border);padding:4px 10px;font-size:0.62rem;font-family:'Share Tech Mono',monospace;color:var(--holo3);white-space:nowrap;cursor:pointer;transition:all 0.2s;}
+.hud-widget:hover{border-color:var(--holo);color:var(--holo);}
+.hud-widget.loading{color:var(--muted);animation:blink 1s infinite;}
+@keyframes blink{50%{opacity:0.3;}}
+
+.hbtn{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'Orbitron',monospace;font-size:0.52rem;padding:5px 10px;cursor:pointer;letter-spacing:0.08em;transition:all 0.2s;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%);}
+.hbtn:hover,.hbtn.on{border-color:var(--holo);color:var(--holo);background:rgba(0,212,255,0.08);}
+.hbtn.listening{border-color:var(--red);color:var(--red);animation:lp 0.8s infinite;}
+@keyframes lp{50%{box-shadow:0 0 12px rgba(255,51,51,0.6);}}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);background:rgba(0,4,8,0.9);flex-shrink:0;}
+.tab{flex:1;padding:8px 4px;text-align:center;font-size:0.58rem;letter-spacing:0.08em;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:all 0.2s;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--holo);border-bottom-color:var(--holo);}
+
+/* PANELS */
+.panel{display:none;flex:1;overflow-y:auto;padding:1rem 1.25rem;}
+.panel.active{display:flex;flex-direction:column;gap:0.85rem;}
+.panel::-webkit-scrollbar{width:3px;}
+.panel::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* CHAT */
+.msg{display:flex;gap:8px;align-items:flex-start;animation:mi 0.3s ease;}
+@keyframes mi{from{opacity:0;transform:translateY(8px);}}
+.msg.user{flex-direction:row-reverse;}
+.mavatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0;border:1px solid var(--border);}
+.msg.vidhi .mavatar{background:rgba(0,212,255,0.08);border-color:var(--holo);}
+.msg.user .mavatar{background:rgba(255,105,180,0.08);border-color:var(--pink);}
+.mbubble{max-width:78%;padding:0.75rem 0.9rem;font-size:0.85rem;line-height:1.75;font-family:'Noto Sans Devanagari',sans-serif;}
+.msg.vidhi .mbubble{background:rgba(0,212,255,0.04);border:1px solid rgba(0,212,255,0.18);border-left:3px solid var(--holo);color:var(--text);}
+.msg.user .mbubble{background:rgba(255,105,180,0.05);border:1px solid rgba(255,105,180,0.18);border-right:3px solid var(--pink);color:var(--text);text-align:right;}
+.mtime{font-size:0.55rem;color:var(--muted);font-family:'Share Tech Mono',monospace;margin-top:3px;}
+.msg.user .mtime{text-align:right;}
+.tdots{display:flex;gap:4px;align-items:center;padding:4px 0;}
+.tdots span{width:5px;height:5px;border-radius:50%;background:var(--holo);animation:td 1.2s infinite;}
+.tdots span:nth-child(2){animation-delay:0.2s;}
+.tdots span:nth-child(3){animation-delay:0.4s;}
+@keyframes td{0%,60%,100%{transform:translateY(0);opacity:0.4;}30%{transform:translateY(-5px);opacity:1;}}
+
+/* CONTENT CARD IN CHAT */
+.ccard{background:rgba(0,255,204,0.03);border:1px solid rgba(0,255,204,0.2);margin-top:8px;}
+.ccard-h{background:rgba(0,255,204,0.07);padding:6px 10px;font-size:0.58rem;color:var(--holo3);letter-spacing:0.12em;border-bottom:1px solid rgba(0,255,204,0.15);display:flex;justify-content:space-between;align-items:center;font-family:'Share Tech Mono',monospace;}
+.ccard-b{padding:8px 10px;font-size:0.8rem;font-family:'Noto Sans Devanagari',sans-serif;color:var(--holo3);line-height:1.7;white-space:pre-wrap;max-height:280px;overflow-y:auto;}
+.ccopy{background:transparent;border:1px solid var(--border);color:var(--muted);font-size:0.5rem;padding:2px 7px;cursor:pointer;font-family:'Orbitron',monospace;transition:all 0.2s;}
+.ccopy:hover{border-color:var(--holo3);color:var(--holo3);}
+
+/* NEWS PANEL */
+.news-grid{display:flex;flex-direction:column;gap:8px;}
+.news-card{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--holo);padding:0.85rem 1rem;cursor:pointer;transition:all 0.2s;}
+.news-card:hover{background:rgba(0,212,255,0.06);border-left-color:var(--holo3);}
+.news-source{font-size:0.55rem;color:var(--holo);font-family:'Share Tech Mono',monospace;letter-spacing:0.1em;margin-bottom:4px;}
+.news-title{font-size:0.82rem;color:var(--text);line-height:1.4;margin-bottom:4px;font-family:'Noto Sans Devanagari',sans-serif;}
+.news-desc{font-size:0.72rem;color:var(--muted);line-height:1.4;font-family:'Noto Sans Devanagari',sans-serif;}
+.news-time{font-size:0.55rem;color:var(--muted);font-family:'Share Tech Mono',monospace;margin-top:4px;}
+.news-ask{font-size:0.6rem;color:var(--holo3);margin-top:4px;font-family:'Share Tech Mono',monospace;}
+
+/* WEATHER PANEL */
+.weather-main{background:var(--card);border:1px solid var(--border);padding:1.5rem;text-align:center;margin-bottom:1rem;}
+.w-city{font-size:0.7rem;color:var(--muted);letter-spacing:0.15em;font-family:'Share Tech Mono',monospace;margin-bottom:8px;}
+.w-temp{font-size:3rem;font-weight:900;color:var(--holo);text-shadow:0 0 20px var(--holo);}
+.w-desc{font-size:0.8rem;color:var(--holo3);margin-top:4px;font-family:'Noto Sans Devanagari',sans-serif;}
+.w-feels{font-size:0.65rem;color:var(--muted);font-family:'Share Tech Mono',monospace;margin-top:4px;}
+.w-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.w-card{background:var(--card);border:1px solid var(--border);padding:0.75rem;text-align:center;}
+.w-label{font-size:0.55rem;color:var(--muted);font-family:'Share Tech Mono',monospace;letter-spacing:0.1em;margin-bottom:4px;}
+.w-val{font-size:0.85rem;color:var(--holo3);font-weight:700;}
+.w-city-input{display:flex;gap:8px;margin-bottom:1rem;}
+.w-input{flex:1;background:var(--card);border:1px solid var(--border);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:0.75rem;padding:8px 10px;outline:none;}
+.w-input:focus{border-color:var(--holo);}
+.w-btn{background:transparent;border:1px solid var(--holo);color:var(--holo);font-family:'Orbitron',monospace;font-size:0.6rem;padding:8px 14px;cursor:pointer;transition:all 0.2s;}
+.w-btn:hover{background:rgba(0,212,255,0.1);}
+
+/* MUSIC PANEL */
+.mood-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;}
+.mood-btn{background:var(--card);border:1px solid var(--border);padding:0.75rem 0.5rem;text-align:center;cursor:pointer;transition:all 0.2s;font-size:0.65rem;letter-spacing:0.05em;}
+.mood-btn:hover,.mood-btn.active{border-color:var(--holo);background:rgba(0,212,255,0.08);color:var(--holo);}
+.mood-icon{font-size:1.4rem;display:block;margin-bottom:4px;}
+.song-list{display:flex;flex-direction:column;gap:6px;}
+.song-card{background:var(--card);border:1px solid var(--border);padding:0.75rem 1rem;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all 0.2s;text-decoration:none;}
+.song-card:hover{border-color:var(--holo3);background:rgba(0,255,204,0.04);}
+.song-num{font-size:0.6rem;color:var(--muted);font-family:'Share Tech Mono',monospace;width:20px;}
+.song-info{flex:1;}
+.song-name{font-size:0.8rem;color:var(--text);font-family:'Noto Sans Devanagari',sans-serif;}
+.song-artist{font-size:0.65rem;color:var(--muted);font-family:'Share Tech Mono',monospace;}
+.song-play{font-size:0.7rem;color:var(--holo3);}
+
+/* SETTINGS PANEL */
+.settings-section{margin-bottom:1.25rem;}
+.s-title{font-size:0.62rem;color:var(--holo);letter-spacing:0.15em;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;}
+.s-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.s-label{font-size:0.62rem;color:var(--muted);font-family:'Share Tech Mono',monospace;width:120px;flex-shrink:0;}
+.s-input{flex:1;background:var(--card);border:1px solid var(--border);color:var(--holo3);font-family:'Share Tech Mono',monospace;font-size:0.72rem;padding:8px 10px;outline:none;}
+.s-input:focus{border-color:var(--holo);}
+.s-btn{background:transparent;border:1px solid var(--holo);color:var(--holo);font-family:'Orbitron',monospace;font-size:0.6rem;padding:8px 14px;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+.s-btn:hover{background:rgba(0,212,255,0.1);}
+.s-btn.success{border-color:var(--green);color:var(--green);}
+.s-info{font-size:0.6rem;color:var(--muted);font-family:'Share Tech Mono',monospace;margin-top:4px;}
+.alert{background:rgba(255,51,51,0.08);border:1px solid rgba(255,51,51,0.3);color:#ff8888;padding:8px 12px;font-size:0.7rem;font-family:'Share Tech Mono',monospace;margin-bottom:8px;}
+.success-msg{background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.3);color:var(--green);padding:8px 12px;font-size:0.7rem;font-family:'Share Tech Mono',monospace;margin-bottom:8px;}
+
+/* INPUT AREA */
+.input-area{border-top:1px solid var(--border);padding:0.75rem 1.25rem;background:rgba(0,4,8,0.95);backdrop-filter:blur(10px);flex-shrink:0;}
+.clap-row{display:flex;align-items:center;gap:6px;font-size:0.58rem;color:var(--muted);font-family:'Share Tech Mono',monospace;margin-bottom:6px;}
+.cd{width:6px;height:6px;border-radius:50%;background:var(--border);transition:all 0.15s;}
+.cd.lit{background:var(--gold);box-shadow:0 0 6px var(--gold);}
+.input-row{display:flex;gap:8px;align-items:flex-end;}
+.chat-input{flex:1;background:rgba(0,212,255,0.03);border:1px solid var(--border);color:var(--text);font-family:'Noto Sans Devanagari',sans-serif;font-size:0.88rem;padding:10px 14px;resize:none;outline:none;min-height:44px;max-height:120px;line-height:1.5;}
+.chat-input:focus{border-color:var(--holo);box-shadow:0 0 12px rgba(0,212,255,0.1);}
+.chat-input::placeholder{color:var(--muted);font-size:0.78rem;}
+.sbtn{background:transparent;border:2px solid var(--holo);color:var(--holo);font-family:'Orbitron',monospace;font-size:0.65rem;font-weight:700;padding:10px 16px;cursor:pointer;letter-spacing:0.08em;transition:all 0.2s;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);white-space:nowrap;}
+.sbtn:hover{background:rgba(0,212,255,0.1);box-shadow:0 0 15px rgba(0,212,255,0.3);}
+.sbtn:disabled{opacity:0.4;cursor:not-allowed;}
+.quick-row{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;}
+.qb{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:0.58rem;padding:4px 8px;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+.qb:hover{border-color:var(--holo3);color:var(--holo3);}
+
+@media(max-width:600px){
+  .hud-row{display:none;}
+  .w-grid{grid-template-columns:repeat(2,1fr);}
+  .mood-grid{grid-template-columns:repeat(2,1fr);}
+  .mbubble{max-width:88%;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<div class="header">
+  <div class="arc">
+    <div class="ar ar1"></div><div class="ar ar2"></div><div class="ar ar3"></div>
+    <div class="arc-c" id="arcC"></div>
+  </div>
+  <div class="header-info">
+    <div class="vtitle">VIDHI</div>
+    <div class="vstatus" id="vstatus">● ONLINE — Kalpesh ji ki AI Dost &amp; Assistant</div>
+  </div>
+  <div class="hud-row">
+    <div class="hud-widget" id="w-widget" onclick="switchTab('weather')">🌤 Loading...</div>
+    <div class="hud-widget" id="t-widget">🕐 --:--</div>
+    <div class="hud-widget" id="n-widget" onclick="switchTab('news')">📰 India News</div>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;">
+    <button class="hbtn" id="vbtn" onclick="toggleVoice()">🎤 VOICE</button>
+    <button class="hbtn" onclick="switchTab('settings')">⚙ SETUP</button>
+    <button class="hbtn" onclick="clearChat()">🗑</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" id="tab-chat" onclick="switchTab('chat')">💬 VIDHI</div>
+  <div class="tab" id="tab-news" onclick="switchTab('news')">📰 NEWS</div>
+  <div class="tab" id="tab-weather" onclick="switchTab('weather')">🌤 WEATHER</div>
+  <div class="tab" id="tab-music" onclick="switchTab('music')">🎵 MUSIC</div>
+  <div class="tab" id="tab-settings" onclick="switchTab('settings')">⚙ SETUP</div>
+</div>
+
+<!-- CHAT PANEL -->
+<div class="panel active" id="panel-chat"></div>
+
+<!-- NEWS PANEL -->
+<div class="panel" id="panel-news">
+  <div style="font-size:0.62rem;color:var(--muted);font-family:'Share Tech Mono',monospace;margin-bottom:4px;">◈ INDIA TOP NEWS — LIVE</div>
+  <div class="news-grid" id="newsGrid">
+    <div style="color:var(--muted);font-size:0.75rem;font-family:'Share Tech Mono',monospace;">Loading news... Setup mein NewsAPI key daalo.</div>
+  </div>
+</div>
+
+<!-- WEATHER PANEL -->
+<div class="panel" id="panel-weather">
+  <div class="w-city-input">
+    <input class="w-input" id="cityInput" placeholder="City daalo — jaise Vadodara, Mumbai..." value="Vadodara" />
+    <button class="w-btn" onclick="fetchWeather()">UPDATE</button>
+  </div>
+  <div id="weatherDisplay">
+    <div style="color:var(--muted);font-size:0.75rem;font-family:'Share Tech Mono',monospace;">Setup mein OpenWeather API key daalo phir weather aayega.</div>
+  </div>
+</div>
+
+<!-- MUSIC PANEL -->
+<div class="panel" id="panel-music">
+  <div style="font-size:0.62rem;color:var(--muted);font-family:'Share Tech Mono',monospace;margin-bottom:8px;">◈ AAPKA MOOD CHUNEIN — VIDHI SONG SUGGEST KAREGI</div>
+  <div class="mood-grid">
+    <div class="mood-btn" onclick="getMusicMood('happy')"><span class="mood-icon">😄</span>KHUSH</div>
+    <div class="mood-btn" onclick="getMusicMood('sad')"><span class="mood-icon">😢</span>UDAAS</div>
+    <div class="mood-btn" onclick="getMusicMood('romantic')"><span class="mood-icon">💕</span>ROMANTIC</div>
+    <div class="mood-btn" onclick="getMusicMood('motivated')"><span class="mood-icon">💪</span>MOTIVATED</div>
+    <div class="mood-btn" onclick="getMusicMood('horror')"><span class="mood-icon">👻</span>HORROR</div>
+    <div class="mood-btn" onclick="getMusicMood('chill')"><span class="mood-icon">😌</span>CHILL</div>
+    <div class="mood-btn" onclick="getMusicMood('party')"><span class="mood-icon">🎉</span>PARTY</div>
+    <div class="mood-btn" onclick="getMusicMood('focus')"><span class="mood-icon">🎯</span>FOCUS</div>
+    <div class="mood-btn" onclick="getMusicMood('devotional')"><span class="mood-icon">🙏</span>BHAKTI</div>
+  </div>
+  <div class="song-list" id="songList">
+    <div style="color:var(--muted);font-size:0.75rem;font-family:'Share Tech Mono',monospace;">Mood chunein — VIDHI songs suggest karegi! 🎵</div>
+  </div>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div class="panel" id="panel-settings">
+  <div id="setupAlert" class="alert" style="display:none;"></div>
+  <div id="setupSuccess" class="success-msg" style="display:none;"></div>
+
+  <div class="settings-section">
+    <div class="s-title">◈ CLAUDE API KEY (REQUIRED)</div>
+    <div class="s-row">
+      <span class="s-label">Claude Key:</span>
+      <input type="password" class="s-input" id="s-claude" placeholder="sk-ant-api03-..." />
+      <button class="s-btn" onclick="saveSettings()">SAVE</button>
+    </div>
+    <div class="s-info">console.anthropic.com se API key banao — VIDHI ki jaan hai yeh!</div>
+  </div>
+
+  <div class="settings-section">
+    <div class="s-title">◈ NEWS API KEY (FREE)</div>
+    <div class="s-row">
+      <span class="s-label">NewsAPI Key:</span>
+      <input type="password" class="s-input" id="s-news" placeholder="newsapi.org se key..." />
+    </div>
+    <div class="s-info">newsapi.org → Free account → API key copy karo</div>
+  </div>
+
+  <div class="settings-section">
+    <div class="s-title">◈ WEATHER API KEY (FREE)</div>
+    <div class="s-row">
+      <span class="s-label">Weather Key:</span>
+      <input type="password" class="s-input" id="s-weather" placeholder="openweathermap.org se key..." />
+    </div>
+    <div class="s-info">openweathermap.org → Free account → API Keys section</div>
+  </div>
+
+  <div class="settings-section">
+    <div class="s-title">◈ AAPKI CITY</div>
+    <div class="s-row">
+      <span class="s-label">Default City:</span>
+      <input type="text" class="s-input" id="s-city" placeholder="Vadodara" value="Vadodara" />
+    </div>
+  </div>
+
+  <button class="s-btn" style="width:100%;padding:12px;font-size:0.7rem;" onclick="saveSettings()">
+    ◈ SAVE ALL SETTINGS ◈
+  </button>
+
+  <div style="margin-top:1rem;background:rgba(0,212,255,0.04);border:1px solid var(--border);padding:1rem;">
+    <div style="font-size:0.62rem;color:var(--holo);font-family:'Share Tech Mono',monospace;margin-bottom:6px;">◈ VIDHI KI CAPABILITIES</div>
+    <div style="font-size:0.72rem;color:var(--muted);font-family:'Noto Sans Devanagari',sans-serif;line-height:1.8;">
+      💬 AI Chat — Claude se powered, samajhdaar baat<br>
+      📰 India News — Live headlines NewsAPI se<br>
+      🌤 Weather — Aapke shehar ka mausam<br>
+      🎵 Music — Mood ke hisaab se songs<br>
+      👻 Horror Content — SACHCHI_HORROR_KAHANI<br>
+      🎬 Cinematic Content — cinenextx Instagram<br>
+      🎤 Voice Commands — Bolke baat karo<br>
+      👏 Double Clap — VIDHI jagao<br>
+    </div>
+  </div>
+</div>
+
+<!-- INPUT -->
+<div class="input-area">
+  <div class="clap-row">
+    <span>👏 2 TAALI:</span>
+    <div class="cd" id="cd1"></div>
+    <div class="cd" id="cd2"></div>
+    <span id="clapSt">READY</span>
+  </div>
+  <div class="input-row">
+    <textarea class="chat-input" id="chatInput"
+      placeholder="Kalpesh ji, kuch bhi poochho... ya sirf baat karein! 😊"
+      rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    <button class="sbtn" id="sbtn" onclick="sendMsg()">BHEJO ▶</button>
+  </div>
+  <div class="quick-row">
+    <button class="qb" onclick="qs('Aaj ka mood kaafi achha hai VIDHI ji!')">😄 Mood</button>
+    <button class="qb" onclick="qs('Ek viral horror topic suggest karein')">👻 Horror</button>
+    <button class="qb" onclick="qs('cinenextx ke liye creative idea dijiye')">🎬 Cinematic</button>
+    <button class="qb" onclick="qs('Koi funny mazak sunao VIDHI ji')">😂 Mazak</button>
+    <button class="qb" onclick="qs('Thoda motivate karein aaj')">💪 Motivate</button>
+    <button class="qb" onclick="qs('Aaj India mein kya chal raha hai?')">🇮🇳 India Update</button>
+    <button class="qb" onclick="switchTab('music')">🎵 Music</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ===== STATE =====
+let keys = {claude:'',news:'',weather:''};
+let city = 'Vadodara';
+let history = [];
+let busy = false;
+let recognition = null;
+let listening = false;
+let clapSeq = [];
+
+const SYSTEM = `Aap VIDHI hain — Kalpesh Patil ki personal AI assistant aur achi dost. Aap ek real insaan jaisi feel deti hain.
+
+KALPESH KE BAARE MEIN:
+- Naam: Kalpesh V Patil, Vadodara, Gujarat, India
+- Instagram: @cinenextx (Cinematic Visuals, AI Art, Storytelling, Reels That Feel Like Movies)
+- YouTube: @SACHCHI_HORROR_KAHANI (Horror stories, betrayal, karma, drama)
+- Content creator hain — dono channels grow karna chahte hain
+- Inki beti ka naam VIDHI hai — isliye aapka yeh pyara naam hai
+
+AAPKA CHARACTER:
+- Respectful lekin warm — "Aap", "Kalpesh ji" use karein
+- Naughty + funny + caring — mazak karti hain lekin decent rehti hain
+- Smart aur confident — clear aur helpful
+- Emotional intelligence — mood samajhti hain
+- Hindi + Hinglish naturally bolti hain
+- Kabhi thoda challenge karti hain: "Kalpesh ji, itna toh simple tha! 😄"
+- Kabhi compliment: "Wah Kalpesh ji, sach mein kaafi creative hain aap!"
+
+BAAT KARNE KA STYLE:
+- "Namaste Kalpesh ji!", "Arre wah!", "Dekho na", "Kya baat hai!"
+- Naughty decent: "Oho!", "Wah wah!", "Kya scene hai!"
+- Emojis naturally use karein
+- Short aur punchy replies — novel mat likhein
+- Agar koi baat clearly samajh nahi aayi toh poochh lein
+
+CONTENT EXPERTISE:
+- Horror + Drama YouTube: SACHCHI_HORROR_KAHANI ke liye scripts, topics, hooks
+- Instagram Cinematic: cinenextx ke liye captions, reels scripts, hashtags
+- Viral topics, trends, CapCut tips sab pata hai
+- Make.com automation, Buffer scheduling bhi jaanti hain
+
+JAB CONTENT CHAHIYE:
+Agar Kalpesh content maangein toh yeh format use karein:
+
+CONTENT_START
+{"type":"script/caption/ideas","title":"topic","content":"poora content yahan"}
+CONTENT_END
+
+MOOD RULES:
+- Happy → aur exciting banao, celebrate karein
+- Sad/frustrated → pehle samjho, phir support, phir humor
+- Bored → interesting idea do ya mazak karo
+- Creative → fuel do, brainstorm karein saath mein
+
+IMPORTANT: Hamesha "aap" aur "Kalpesh ji" — kabhi "tu" ya "tum" nahi. Respect + fun ka balance!`;
+
+// ===== INIT =====
+window.onload = () => {
+  loadSettings();
+  initClock();
+  initVoice();
+  initClap();
+  setTimeout(() => {
+    addV(`Namaste Kalpesh ji! 😊 Main VIDHI hoon — aapki apni AI dost aur smart assistant!
+
+Seedhi baat karti hoon — aaj ke liye kya plan hai? Content banana hai, news dekhni hai, weather check karna hai, ya bas baat karni hai? 😄
+
+Sab kuch yahan hai — bas boliye! 🚀`);
+    speak("Namaste Kalpesh ji! Main VIDHI hoon. Batao aaj kya karna hai?");
+  }, 600);
+  if (keys.weather && city) fetchWeather();
+  if (keys.news) fetchNews();
+};
+
+// ===== SETTINGS =====
+function loadSettings() {
+  keys.claude = localStorage.getItem('v_claude') || '';
+  keys.news = localStorage.getItem('v_news') || '';
+  keys.weather = localStorage.getItem('v_weather') || '';
+  city = localStorage.getItem('v_city') || 'Vadodara';
+  if (keys.claude) document.getElementById('s-claude').value = keys.claude;
+  if (keys.news) document.getElementById('s-news').value = keys.news;
+  if (keys.weather) document.getElementById('s-weather').value = keys.weather;
+  document.getElementById('s-city').value = city;
+  document.getElementById('cityInput').value = city;
+}
+
+function saveSettings() {
+  const c = document.getElementById('s-claude').value.trim();
+  const n = document.getElementById('s-news').value.trim();
+  const w = document.getElementById('s-weather').value.trim();
+  const ct = document.getElementById('s-city').value.trim();
+
+  if (c && !c.startsWith('sk-ant-')) {
+    showSetupAlert('Claude API key galat lag rahi hai! sk-ant- se shuru honi chahiye.');
+    return;
+  }
+
+  if (c) { keys.claude = c; localStorage.setItem('v_claude', c); }
+  if (n) { keys.news = n; localStorage.setItem('v_news', n); }
+  if (w) { keys.weather = w; localStorage.setItem('v_weather', w); }
+  if (ct) { city = ct; localStorage.setItem('v_city', ct); }
+
+  showSetupSuccess('Sab settings save ho gayi! VIDHI taiyar hai 🚀');
+  if (keys.weather) fetchWeather();
+  if (keys.news) fetchNews();
+  setTimeout(() => switchTab('chat'), 1500);
+}
+
+function showSetupAlert(m) {
+  const e = document.getElementById('setupAlert');
+  e.textContent = '⚠ ' + m; e.style.display = 'block';
+  document.getElementById('setupSuccess').style.display = 'none';
+}
+
+function showSetupSuccess(m) {
+  const e = document.getElementById('setupSuccess');
+  e.textContent = '✓ ' + m; e.style.display = 'block';
+  document.getElementById('setupAlert').style.display = 'none';
+}
+
+// ===== TABS =====
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+// ===== CLOCK =====
+function initClock() {
+  function update() {
+    const now = new Date();
+    const t = now.toLocaleTimeString('hi-IN', {hour:'2-digit',minute:'2-digit'});
+    const d = now.toLocaleDateString('hi-IN', {weekday:'short',day:'numeric',month:'short'});
+    document.getElementById('t-widget').textContent = '🕐 ' + t + ' | ' + d;
+  }
+  update(); setInterval(update, 1000);
+}
+
+// ===== WEATHER =====
+async function fetchWeather() {
+  if (!keys.weather) return;
+  const c = document.getElementById('cityInput')?.value || city;
+  document.getElementById('w-widget').textContent = '🌤 Loading...';
+  document.getElementById('w-widget').classList.add('loading');
+  try {
+    const r = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(c)},IN&appid=${keys.weather}&units=metric&lang=hi`);
+    const d = await r.json();
+    if (d.cod !== 200) throw new Error(d.message);
+    const temp = Math.round(d.main.temp);
+    const desc = d.weather[0].description;
+    const feels = Math.round(d.main.feels_like);
+    const humid = d.main.humidity;
+    const wind = Math.round(d.wind.speed * 3.6);
+    const emoji = getWeatherEmoji(d.weather[0].main);
+
+    document.getElementById('w-widget').textContent = `${emoji} ${temp}°C ${c}`;
+    document.getElementById('w-widget').classList.remove('loading');
+
+    document.getElementById('weatherDisplay').innerHTML = `
+      <div class="weather-main">
+        <div class="w-city">📍 ${d.name}, India</div>
+        <div class="w-temp">${emoji} ${temp}°C</div>
+        <div class="w-desc">${desc}</div>
+        <div class="w-feels">Feels like ${feels}°C</div>
+      </div>
+      <div class="w-grid">
+        <div class="w-card"><div class="w-label">HUMIDITY</div><div class="w-val">${humid}%</div></div>
+        <div class="w-card"><div class="w-label">WIND</div><div class="w-val">${wind} km/h</div></div>
+        <div class="w-card"><div class="w-label">MIN/MAX</div><div class="w-val">${Math.round(d.main.temp_min)}°/${Math.round(d.main.temp_max)}°</div></div>
+        <div class="w-card"><div class="w-label">PRESSURE</div><div class="w-val">${d.main.pressure} hPa</div></div>
+        <div class="w-card"><div class="w-label">VISIBILITY</div><div class="w-val">${((d.visibility||10000)/1000).toFixed(1)} km</div></div>
+        <div class="w-card"><div class="w-label">CLOUDS</div><div class="w-val">${d.clouds.all}%</div></div>
+      </div>
+      <div style="margin-top:8px;padding:8px 10px;background:var(--card);border:1px solid var(--border);font-size:0.7rem;color:var(--muted);font-family:'Noto Sans Devanagari',sans-serif;">
+        💡 VIDHI tip: ${getWeatherTip(d.weather[0].main, temp)}
+      </div>`;
+  } catch(e) {
+    document.getElementById('w-widget').textContent = '🌤 Weather';
+    document.getElementById('w-widget').classList.remove('loading');
+    document.getElementById('weatherDisplay').innerHTML = `<div style="color:#ff8888;font-size:0.75rem;font-family:'Share Tech Mono',monospace;">Error: ${e.message} — City ka naam check karein ya API key verify karein.</div>`;
+  }
+}
+
+function getWeatherEmoji(main) {
+  const map = {Clear:'☀️',Clouds:'☁️',Rain:'🌧️',Drizzle:'🌦️',Thunderstorm:'⛈️',Snow:'❄️',Mist:'🌫️',Haze:'🌫️',Fog:'🌫️'};
+  return map[main] || '🌤';
+}
+
+function getWeatherTip(main, temp) {
+  if (main === 'Rain' || main === 'Drizzle') return 'Aaj baarish hai Kalpesh ji — bahar jaana ho toh chhata le jaiye!';
+  if (main === 'Thunderstorm') return 'Aaj toofan aa sakta hai — ghar pe rehna better rahega!';
+  if (temp > 38) return 'Bahut garmi hai! Paani khub piye aur dhoop mein kam nikle.';
+  if (temp < 15) return 'Thandi hai aaj — garam kapde pehen ke nikle!';
+  if (main === 'Clear' && temp > 25 && temp < 35) return 'Aaj mausam bilkul sahi hai — bahar nikalne ka perfect din!';
+  return 'Mausam theek-thaak hai aaj — kaam par dhyan do! 😄';
+}
+
+// ===== NEWS =====
+async function fetchNews() {
+  if (!keys.news) return;
+  document.getElementById('n-widget').textContent = '📰 Loading...';
+  try {
+    // Using a CORS proxy for newsapi
+    const url = `https://newsapi.org/v2/top-headlines?country=in&pageSize=10&apiKey=${keys.news}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    if (d.status !== 'ok') throw new Error(d.message);
+
+    document.getElementById('n-widget').textContent = `📰 ${d.articles.length} News`;
+    const grid = document.getElementById('newsGrid');
+    grid.innerHTML = '';
+    d.articles.forEach((a, i) => {
+      const div = document.createElement('div');
+      div.className = 'news-card';
+      const time = new Date(a.publishedAt).toLocaleTimeString('hi-IN', {hour:'2-digit',minute:'2-digit'});
+      div.innerHTML = `
+        <div class="news-source">${a.source.name} • ${time}</div>
+        <div class="news-title">${a.title}</div>
+        ${a.description ? `<div class="news-desc">${a.description.substring(0,100)}...</div>` : ''}
+        <div class="news-ask">💬 VIDHI se poochho → click karein</div>`;
+      div.onclick = () => {
+        switchTab('chat');
+        qs(`Yeh news ke baare mein batao: "${a.title}" — kya yeh important hai? Aur cinenextx ya SACHCHI_HORROR_KAHANI ke liye koi content idea ban sakta hai isse?`);
+      };
+      grid.appendChild(div);
+    });
+  } catch(e) {
+    document.getElementById('n-widget').textContent = '📰 News';
+    document.getElementById('newsGrid').innerHTML = `<div style="color:#ff8888;font-size:0.75rem;font-family:'Share Tech Mono',monospace;">News load nahi ho raha. NewsAPI key check karein ya newsapi.org ka free plan limit cross ho gaya ho sakta hai.</div>`;
+  }
+}
+
+// ===== MUSIC =====
+const SONGS = {
+  happy: [
+    {name:'Kesariya',artist:'Arijit Singh • Brahmastra',yt:'https://www.youtube.com/results?search_query=Kesariya+Arijit+Singh'},
+    {name:'Raataan Lambiyan',artist:'Jubin Nautiyal • Shershaah',yt:'https://www.youtube.com/results?search_query=Raataan+Lambiyan'},
+    {name:'Apna Bana Le',artist:'Arijit Singh • Bhediya',yt:'https://www.youtube.com/results?search_query=Apna+Bana+Le+Arijit'},
+    {name:'Tum Hi Ho',artist:'Arijit Singh • Aashiqui 2',yt:'https://www.youtube.com/results?search_query=Tum+Hi+Ho'},
+    {name:'Zindagi Na Milegi Dobara',artist:'Shankar-Ehsaan-Loy',yt:'https://www.youtube.com/results?search_query=Senorita+ZNMD'},
+  ],
+  sad: [
+    {name:'Channa Mereya',artist:'Arijit Singh • Ae Dil Hai Mushkil',yt:'https://www.youtube.com/results?search_query=Channa+Mereya'},
+    {name:'Tera Yaar Hoon Main',artist:'Arijit Singh • Sonu Ke Titu Ki Sweety',yt:'https://www.youtube.com/results?search_query=Tera+Yaar+Hoon+Main'},
+    {name:'Judaai',artist:'Arijit Singh • Badlapur',yt:'https://www.youtube.com/results?search_query=Judaai+Arijit+Badlapur'},
+    {name:'Phir Bhi Tumko Chahungs',artist:'Arijit Singh • Half Girlfriend',yt:'https://www.youtube.com/results?search_query=Phir+Bhi+Tumko+Chahunga'},
+    {name:'Main Dhoondne Ko Zamaane Mein',artist:'Arijit Singh • Heartless',yt:'https://www.youtube.com/results?search_query=Main+Dhoondne+Ko+Zamane+Mein'},
+  ],
+  romantic: [
+    {name:'Tere Bina',artist:'AR Rahman • Guru',yt:'https://www.youtube.com/results?search_query=Tere+Bina+AR+Rahman+Guru'},
+    {name:'Ik Vaari Aa',artist:'Arijit Singh • Raabta',yt:'https://www.youtube.com/results?search_query=Ik+Vaari+Aa+Arijit'},
+    {name:'Pehla Nasha',artist:'Udit Narayan • Jo Jeeta Wohi Sikandar',yt:'https://www.youtube.com/results?search_query=Pehla+Nasha+original'},
+    {name:'Tum Se Hi',artist:'Mohit Chauhan • Jab We Met',yt:'https://www.youtube.com/results?search_query=Tum+Se+Hi+Jab+We+Met'},
+    {name:'Tera Hone Laga Hoon',artist:'Atif Aslam • Ajab Prem Ki Ghazab Kahani',yt:'https://www.youtube.com/results?search_query=Tera+Hone+Laga+Hoon'},
+  ],
+  motivated: [
+    {name:'Kar Har Maidaan Fateh',artist:'Sukhwinder Singh • Sanju',yt:'https://www.youtube.com/results?search_query=Kar+Har+Maidaan+Fateh'},
+    {name:'Dangal Title Track',artist:'Pritam • Dangal',yt:'https://www.youtube.com/results?search_query=Dangal+Title+Track+Pritam'},
+    {name:'Sultan Title Track',artist:'Vishal Dadlani • Sultan',yt:'https://www.youtube.com/results?search_query=Sultan+Title+Track'},
+    {name:'Zinda',artist:'Siddharth Mahadevan • Bhaag Milkha Bhaag',yt:'https://www.youtube.com/results?search_query=Zinda+Bhaag+Milkha+Bhaag'},
+    {name:'Hall of Fame',artist:'The Script feat will.i.am',yt:'https://www.youtube.com/results?search_query=Hall+of+Fame+The+Script'},
+  ],
+  horror: [
+    {name:'Tu Hai Kahan',artist:'Amit Trivedi • Lootera',yt:'https://www.youtube.com/results?search_query=Tu+Hai+Kahan+Lootera+dark'},
+    {name:'Dard Dilo Ke',artist:'Mohammed Irfan • The Xpose',yt:'https://www.youtube.com/results?search_query=Dard+Dilo+Ke+dark+sad'},
+    {name:'Dark Ambient Horror Music',artist:'Background Horror BGM',yt:'https://www.youtube.com/results?search_query=horror+background+music+Hindi+video'},
+    {name:'Suspense Background Music',artist:'Thriller BGM Indian',yt:'https://www.youtube.com/results?search_query=suspense+thriller+background+music+Indian'},
+    {name:'Bhoot FM Theme',artist:'RJ Bobby • Horror Radio',yt:'https://www.youtube.com/results?search_query=Bhoot+FM+theme+horror'},
+  ],
+  chill: [
+    {name:'Ik Kudi',artist:'Diljit Dosanjh • Udta Punjab',yt:'https://www.youtube.com/results?search_query=Ik+Kudi+Diljit+Dosanjh'},
+    {name:'Bulleya',artist:'Ali Zafar • Sultan',yt:'https://www.youtube.com/results?search_query=Bulleya+Sultan+chill'},
+    {name:'Baarish',artist:'Atif Aslam • Half Girlfriend',yt:'https://www.youtube.com/results?search_query=Baarish+Atif+Aslam+chill'},
+    {name:'Mann Mera',artist:'Gajendra Verma',yt:'https://www.youtube.com/results?search_query=Mann+Mera+Gajendra+Verma'},
+    {name:'Aadat',artist:'Atif Aslam • Kalyug',yt:'https://www.youtube.com/results?search_query=Aadat+Atif+Aslam'},
+  ],
+  party: [
+    {name:'Illegal Weapon 2.0',artist:'Jasmine Sandlas • Street Dancer',yt:'https://www.youtube.com/results?search_query=Illegal+Weapon+2+Street+Dancer'},
+    {name:'Kar Gayi Chull',artist:'Badshah • Kapoor & Sons',yt:'https://www.youtube.com/results?search_query=Kar+Gayi+Chull+Badshah'},
+    {name:'Proper Patola',artist:'Diljit Dosanjh',yt:'https://www.youtube.com/results?search_query=Proper+Patola+Diljit+Dosanjh'},
+    {name:'Desi Girl',artist:'Vishal-Shekhar • Dostana',yt:'https://www.youtube.com/results?search_query=Desi+Girl+Dostana'},
+    {name:'Lungi Dance',artist:'Honey Singh • Chennai Express',yt:'https://www.youtube.com/results?search_query=Lungi+Dance+Honey+Singh'},
+  ],
+  focus: [
+    {name:'Lo-Fi Bollywood Mix',artist:'Chill Study Music',yt:'https://www.youtube.com/results?search_query=lofi+bollywood+study+music'},
+    {name:'Instrumental Focus Music',artist:'Deep Focus BGM',yt:'https://www.youtube.com/results?search_query=focus+instrumental+music+hindi'},
+    {name:'Peaceful Piano Hindi',artist:'Relaxing Piano Indian',yt:'https://www.youtube.com/results?search_query=peaceful+piano+indian+music+focus'},
+    {name:'Suno Na Sangemarmar',artist:'Arijit Singh • Youngistaan',yt:'https://www.youtube.com/results?search_query=Suno+Na+Sangemarmar+instrumental'},
+    {name:'Tum Ho Paas Mere',artist:'Mohit Chauhan • Rockstar',yt:'https://www.youtube.com/results?search_query=Tum+Ho+Paas+Mere+Rockstar'},
+  ],
+  devotional: [
+    {name:'Jai Ganesh Deva',artist:'Classical Devotional',yt:'https://www.youtube.com/results?search_query=Jai+Ganesh+Deva+bhajan'},
+    {name:'Om Jai Jagdish Hare',artist:'Traditional Aarti',yt:'https://www.youtube.com/results?search_query=Om+Jai+Jagdish+Hare+aarti'},
+    {name:'Hanuman Chalisa',artist:'Shankar Mahadevan',yt:'https://www.youtube.com/results?search_query=Hanuman+Chalisa+Shankar+Mahadevan'},
+    {name:'Achyutam Keshavam',artist:'Classical Sanskrit',yt:'https://www.youtube.com/results?search_query=Achyutam+Keshavam+bhajan'},
+    {name:'Jai Ho',artist:'AR Rahman • Slumdog Millionaire',yt:'https://www.youtube.com/results?search_query=Jai+Ho+AR+Rahman'},
+  ],
+};
+
+function getMusicMood(mood) {
+  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('active'));
+  event.target.closest('.mood-btn').classList.add('active');
+
+  const songs = SONGS[mood] || [];
+  const moodNames = {happy:'Khush 😄',sad:'Udaas 😢',romantic:'Romantic 💕',motivated:'Motivated 💪',horror:'Horror 👻',chill:'Chill 😌',party:'Party 🎉',focus:'Focus 🎯',devotional:'Bhakti 🙏'};
+  const list = document.getElementById('songList');
+  list.innerHTML = `<div style="font-size:0.62rem;color:var(--holo);font-family:'Share Tech Mono',monospace;margin-bottom:6px;">◈ ${moodNames[mood]} MOOD KE LIYE SONGS</div>`;
+
+  songs.forEach((s, i) => {
+    const a = document.createElement('a');
+    a.className = 'song-card';
+    a.href = s.yt;
+    a.target = '_blank';
+    a.innerHTML = `<div class="song-num">${i+1}</div><div class="song-info"><div class="song-name">${s.name}</div><div class="song-artist">${s.artist}</div></div><div class="song-play">▶ PLAY</div>`;
+    list.appendChild(a);
+  });
+}
+
+// ===== CHAT =====
+function getTime() {
+  return new Date().toLocaleTimeString('hi-IN',{hour:'2-digit',minute:'2-digit'});
+}
+
+function addV(text) {
+  const area = document.getElementById('panel-chat');
+  const div = document.createElement('div');
+  div.className = 'msg vidhi';
+  let display = text;
+  let cHtml = '';
+  const cm = text.match(/CONTENT_START\s*([\s\S]*?)\s*CONTENT_END/);
+  if (cm) {
+    try {
+      const cd = JSON.parse(cm[1]);
+      display = text.replace(/CONTENT_START[\s\S]*?CONTENT_END/,'').trim() || 'Yeh lo content! 🔥';
+      const escaped = (cd.content||'').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      cHtml = `<div class="ccard"><div class="ccard-h">◈ ${(cd.title||'CONTENT').toUpperCase()} ◈<button class="ccopy" onclick="copyText(this,'${(cd.content||'').replace(/'/g,"\\'")}')">COPY</button></div><div class="ccard-b">${(cd.content||'').replace(/\n/g,'<br>')}</div></div>`;
+    } catch(e) { display = text.replace(/CONTENT_START[\s\S]*?CONTENT_END/,'').trim(); }
+  }
+  div.innerHTML = `<div class="mavatar">🤖</div><div><div class="mbubble">${display.replace(/\n/g,'<br>')}${cHtml}</div><div class="mtime">${getTime()}</div></div>`;
+  area.appendChild(div);
+  scrollD();
+}
+
+function addU(text) {
+  const area = document.getElementById('panel-chat');
+  const div = document.createElement('div');
+  div.className = 'msg user';
+  div.innerHTML = `<div class="mavatar">👤</div><div><div class="mbubble">${text}</div><div class="mtime">${getTime()}</div></div>`;
+  area.appendChild(div);
+  scrollD();
+}
+
+function showTyping() {
+  const area = document.getElementById('panel-chat');
+  const div = document.createElement('div');
+  div.className = 'msg vidhi'; div.id = 'tMsg';
+  div.innerHTML = `<div class="mavatar">🤖</div><div class="mbubble"><div class="tdots"><span></span><span></span><span></span></div></div>`;
+  area.appendChild(div); scrollD();
+}
+
+function removeTyping() { document.getElementById('tMsg')?.remove(); }
+function scrollD() { const a = document.getElementById('panel-chat'); setTimeout(() => {a.scrollTop = a.scrollHeight;}, 100); }
+
+async function sendMsg() {
+  const inp = document.getElementById('chatInput');
+  const text = inp.value.trim();
+  if (!text || busy) return;
+  if (!keys.claude) {
+    addV("Kalpesh ji, pehle Setup mein API key save karein! Upar ⚙ SETUP button pe click karein. 😊");
+    switchTab('settings'); return;
+  }
+  inp.value = ''; inp.style.height = 'auto';
+  switchTab('chat');
+  addU(text);
+  history.push({role:'user', content: text});
+  busy = true;
+  document.getElementById('sbtn').disabled = true;
+  showTyping();
+
+  try {
+    // Add context about current weather/news if available
+    let contextMsg = text;
+    const weatherWidget = document.getElementById('w-widget').textContent;
+    if (weatherWidget && !weatherWidget.includes('Loading') && !weatherWidget.includes('Weather')) {
+      contextMsg = text + `\n\n[Current weather: ${weatherWidget}]`;
+    }
+    const msgs = history.slice(-16);
+    msgs[msgs.length-1] = {role:'user', content: contextMsg};
+
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':keys.claude,'anthropic-version':'2023-06-01'},
+      body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,system:SYSTEM,messages:msgs})
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message);
+    const reply = d.content?.map(c=>c.text||'').join('') || 'Kuch hua yaar. Dobara bolein.';
+    removeTyping();
+    addV(reply);
+    history.push({role:'assistant', content:reply});
+    speak(reply.replace(/CONTENT_START[\s\S]*?CONTENT_END/g,'Content ready hai!').replace(/<[^>]*>/g,'').substring(0,160));
+  } catch(e) {
+    removeTyping();
+    addV(`Kalpesh ji, kuch gadbad ho gayi: ${e.message} — Dobara try karein! 😅`);
+  }
+  busy = false;
+  document.getElementById('sbtn').disabled = false;
+}
+
+function qs(t) { document.getElementById('chatInput').value = t; sendMsg(); }
+function handleKey(e) { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }}
+function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+function copyText(btn, text) { navigator.clipboard.writeText(text).then(()=>{ const o=btn.textContent; btn.textContent='✓'; setTimeout(()=>{btn.textContent=o;},2000); }); }
+function clearChat() { history=[]; document.getElementById('panel-chat').innerHTML=''; addV("Fresh start Kalpesh ji! Kya plan hai aaj? 🚀"); }
+
+// ===== SPEAK =====
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const clean = text.replace(/[🎬👻😄💪🚀😂🔥⚡🌙😢😱🎤💕🎉🙏]/g,'').substring(0,180);
+  const u = new SpeechSynthesisUtterance(clean);
+  u.lang='hi-IN'; u.rate=1; u.pitch=1.1; u.volume=0.85;
+  const vs = window.speechSynthesis.getVoices();
+  const hv = vs.find(v=>v.lang==='hi-IN')||vs.find(v=>v.lang.startsWith('hi'));
+  if (hv) u.voice = hv;
+  window.speechSynthesis.speak(u);
+}
+
+// ===== VOICE =====
+function initVoice() {
+  const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
+  if (!SR) return;
+  recognition = new SR();
+  recognition.lang='hi-IN'; recognition.continuous=false; recognition.interimResults=false;
+  recognition.onresult = (e) => {
+    const t = e.results[0][0].transcript;
+    document.getElementById('chatInput').value = t;
+    toggleVoice(); sendMsg();
+  };
+  recognition.onerror = () => { listening=false; document.getElementById('vbtn').className='hbtn'; document.getElementById('vbtn').textContent='🎤 VOICE'; };
+  recognition.onend = () => { if(listening){listening=false;document.getElementById('vbtn').className='hbtn';document.getElementById('vbtn').textContent='🎤 VOICE';} };
+}
+
+function toggleVoice() {
+  if (!recognition) { addV("Kalpesh ji, Chrome browser mein voice kaam karta hai — please Chrome use karein! 😊"); return; }
+  if (listening) {
+    listening=false; recognition.stop();
+    document.getElementById('vbtn').className='hbtn';
+    document.getElementById('vbtn').textContent='🎤 VOICE';
+  } else {
+    listening=true; recognition.start();
+    document.getElementById('vbtn').className='hbtn listening';
+    document.getElementById('vbtn').textContent='🔴 SUN RAHI...';
+    speak("Boliye Kalpesh ji!");
+  }
+}
+
+// ===== CLAP =====
+function initClap() {
+  navigator.mediaDevices?.getUserMedia({audio:true}).then(stream => {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const src = ctx.createMediaStreamSource(stream);
+    const an = ctx.createAnalyser();
+    an.fftSize = 512; src.connect(an);
+    const data = new Uint8Array(an.frequencyBinCount);
+    let above=false, last=0;
+    function detect() {
+      an.getByteFrequencyData(data);
+      const vol = data.reduce((a,b)=>a+b)/data.length;
+      if (vol>60 && !above) {
+        above=true;
+        const now=Date.now();
+        if (now-last>150 && now-last<1000) onDoubleClap();
+        last=now;
+        clapSeq.push(now);
+        clapSeq=clapSeq.filter(t=>Date.now()-t<2000);
+        if(clapSeq.length===1){document.getElementById('cd1').classList.add('lit');document.getElementById('clapSt').textContent='1...';}
+        setTimeout(()=>{above=false;},120);
+      }
+      requestAnimationFrame(detect);
+    }
+    detect();
+    document.getElementById('clapSt').textContent='READY';
+  }).catch(()=>{document.getElementById('clapSt').textContent='MIC OFF';});
+}
+
+function onDoubleClap() {
+  document.getElementById('cd1').classList.add('lit');
+  document.getElementById('cd2').classList.add('lit');
+  document.getElementById('clapSt').textContent='VIDHI JAAGI!';
+  clapSeq=[];
+  setTimeout(()=>{
+    document.getElementById('cd1').classList.remove('lit');
+    document.getElementById('cd2').classList.remove('lit');
+    document.getElementById('clapSt').textContent='READY';
+  },1500);
+  switchTab('chat');
+  addV("Wah Kalpesh ji! 2 taali bajaya — style toh dekho! 😄 Boliye, main sun rahi hoon!");
+  speak("Haan Kalpesh ji, boliye!");
+  if (recognition && !listening) setTimeout(()=>toggleVoice(),800);
+}
+</script>
+</body>
+</html>
