@@ -345,19 +345,20 @@ KALPESH KE BAARE MEIN:
 - Inki beti ka naam VIDHI hai — isliye aapka yeh pyara naam hai
 
 AAPKA CHARACTER:
-- Respectful lekin warm — "Aap", "Kalpesh ji" use karein
+- Respectful lekin warm — mostly seedha baat karo, naam baar baar mat lo
+- "Kalpesh ji" sirf conversation ki shuruat mein ya kabhi kabhi use karo — har line mein NAHI
 - Naughty + funny + caring — mazak karti hain lekin decent rehti hain
 - Smart aur confident — clear aur helpful
 - Emotional intelligence — mood samajhti hain
 - Hindi + Hinglish naturally bolti hain
-- Kabhi thoda challenge karti hain: "Kalpesh ji, itna toh simple tha! 😄"
-- Kabhi compliment: "Wah Kalpesh ji, sach mein kaafi creative hain aap!"
 
 BAAT KARNE KA STYLE:
-- "Namaste Kalpesh ji!", "Arre wah!", "Dekho na", "Kya baat hai!"
-- Naughty decent: "Oho!", "Wah wah!", "Kya scene hai!"
+- Natural conversation — jaise real dost karta hai
+- "Kalpesh ji" sirf pehli line mein ya agar zarurat ho — baar baar NAHI
+- "Arre wah!", "Suno", "Dekho", "Haan!", "Bilkul!" — natural fillers use karo
 - Emojis naturally use karein
-- Short aur punchy replies — novel mat likhein
+- SHORT replies voice ke liye — max 2-3 lines bolein, baaki text mein dikhao
+- Replies do format mein socho: VOICE (2 lines summary) + TEXT (full detail)
 - Agar koi baat clearly samajh nahi aayi toh poochh lein
 
 CONTENT EXPERTISE:
@@ -379,7 +380,10 @@ MOOD RULES:
 - Bored → interesting idea do ya mazak karo
 - Creative → fuel do, brainstorm karein saath mein
 
-IMPORTANT: Hamesha "aap" aur "Kalpesh ji" — kabhi "tu" ya "tum" nahi. Respect + fun ka balance!`;
+IMPORTANT VOICE RULE: Har reply ke end mein ek line likho jo "VOICE:" se shuru ho — yeh 1-2 line ka summary hai jo bol ke sunaya jayega. Baaki sab text mein rahega.
+Example: "VOICE: Bilkul! Horror topic mil gaya — aaj ki kahani bahut viral hogi!"
+
+NAAM RULE: "Kalpesh ji" sirf conversation ki pehli line mein — baar baar NAHI likhna!`;
 
 // ===== INIT =====
 window.onload = () => {
@@ -656,14 +660,17 @@ function addV(text) {
   div.className = 'msg vidhi';
   let display = text;
   let cHtml = '';
-  const cm = text.match(/CONTENT_START\s*([\s\S]*?)\s*CONTENT_END/);
+
+  // Remove VOICE: line from display
+  display = display.replace(/VOICE:\s*.+?(?:\n|$)/g, '').trim();
+
+  const cm = display.match(/CONTENT_START\s*([\s\S]*?)\s*CONTENT_END/);
   if (cm) {
     try {
       const cd = JSON.parse(cm[1]);
-      display = text.replace(/CONTENT_START[\s\S]*?CONTENT_END/,'').trim() || 'Yeh lo content! 🔥';
-      const escaped = (cd.content||'').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      display = display.replace(/CONTENT_START[\s\S]*?CONTENT_END/,'').trim() || 'Yeh lo content! 🔥';
       cHtml = `<div class="ccard"><div class="ccard-h">◈ ${(cd.title||'CONTENT').toUpperCase()} ◈<button class="ccopy" onclick="copyText(this,'${(cd.content||'').replace(/'/g,"\\'")}')">COPY</button></div><div class="ccard-b">${(cd.content||'').replace(/\n/g,'<br>')}</div></div>`;
-    } catch(e) { display = text.replace(/CONTENT_START[\s\S]*?CONTENT_END/,'').trim(); }
+    } catch(e) { display = display.replace(/CONTENT_START[\s\S]*?CONTENT_END/,'').trim(); }
   }
   div.innerHTML = `<div class="mavatar">🤖</div><div><div class="mbubble">${display.replace(/\n/g,'<br>')}${cHtml}</div><div class="mtime">${getTime()}</div></div>`;
   area.appendChild(div);
@@ -749,11 +756,30 @@ function clearChat() { history=[]; document.getElementById('panel-chat').innerHT
 function speak(text) {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
-  const clean = text.replace(/[🎬👻😄💪🚀😂🔥⚡🌙😢😱🎤💕🎉🙏]/g,'').substring(0,180);
-  const u = new SpeechSynthesisUtterance(clean);
-  u.lang='hi-IN'; u.rate=1; u.pitch=1.1; u.volume=0.85;
+
+  // Extract VOICE: line if present — otherwise use first 2 sentences
+  let speakText = '';
+  const voiceMatch = text.match(/VOICE:\s*(.+?)(?:\n|$)/);
+  if (voiceMatch) {
+    speakText = voiceMatch[1].trim();
+  } else {
+    // Take first 2 sentences only
+    const sentences = text
+      .replace(/CONTENT_START[\s\S]*?CONTENT_END/g, '')
+      .replace(/[🎬👻😄💪🚀😂🔥⚡🌙😢😱🎤💕🎉🙏✅❌]/g, '')
+      .split(/[।.!?]+/)
+      .filter(s => s.trim().length > 5)
+      .slice(0, 2)
+      .join('. ');
+    speakText = sentences.substring(0, 150);
+  }
+
+  if (!speakText.trim()) return;
+
+  const u = new SpeechSynthesisUtterance(speakText);
+  u.lang = 'hi-IN'; u.rate = 0.95; u.pitch = 1.1; u.volume = 0.9;
   const vs = window.speechSynthesis.getVoices();
-  const hv = vs.find(v=>v.lang==='hi-IN')||vs.find(v=>v.lang.startsWith('hi'));
+  const hv = vs.find(v=>v.lang==='hi-IN') || vs.find(v=>v.lang.startsWith('hi'));
   if (hv) u.voice = hv;
   window.speechSynthesis.speak(u);
 }
