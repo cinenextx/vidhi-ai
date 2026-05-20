@@ -330,12 +330,12 @@ body::after{content:'';position:fixed;top:-2px;left:0;right:0;height:2px;backgro
     <button class="sbtn" id="sbtn" onclick="sendMsg()">BHEJO ▶</button>
   </div>
   <div class="quick-row">
-    <button class="qb" onclick="qs('Aaj ka mood kaafi achha hai VIDHI ji!')">😄 Mood</button>
-    <button class="qb" onclick="qs('Ek viral horror topic suggest karein')">👻 Horror</button>
-    <button class="qb" onclick="qs('cinenextx ke liye creative idea dijiye')">🎬 Cinematic</button>
-    <button class="qb" onclick="qs('Koi funny mazak sunao VIDHI ji')">😂 Mazak</button>
-    <button class="qb" onclick="qs('Thoda motivate karein aaj')">💪 Motivate</button>
-    <button class="qb" onclick="qs('Aaj India mein kya chal raha hai?')">🇮🇳 India Update</button>
+    <button class="qb" onclick="qs('Aaj ka mood kaafi achha hai!')">😄 Mood</button>
+    <button class="qb" onclick="qs('SACHCHI_HORROR_KAHANI ke liye ek viral horror YouTube script banao — topic khud chunao aur CONTENT_START format mein do')">👻 Horror Script</button>
+    <button class="qb" onclick="qs('cinenextx Instagram ke liye ek cinematic caption aur hashtags banao — CONTENT_START format mein do')">🎬 IG Caption</button>
+    <button class="qb" onclick="qs('Koi funny mazak sunao')">😂 Mazak</button>
+    <button class="qb" onclick="qs('Thoda motivate karo aaj')">💪 Motivate</button>
+    <button class="qb" onclick="qs('Aaj India mein kya important chal raha hai?')">🇮🇳 India Update</button>
     <button class="qb" onclick="switchTab('music')">🎵 Music</button>
   </div>
 </div>
@@ -385,11 +385,33 @@ CONTENT EXPERTISE:
 - Make.com automation, Buffer scheduling bhi jaanti hain
 
 JAB CONTENT CHAHIYE:
-Agar Kalpesh content maangein toh yeh format use karein:
+Jab bhi Kalpesh script, caption, hashtags, ya koi bhi content maangein — HAMESHA yeh EXACT format use karein. Kabhi bhi content bahar mat likhein:
 
 CONTENT_START
-{"type":"script/caption/ideas","title":"topic","content":"poora content yahan"}
+{"type":"script","title":"Topic ka naam yahan","content":"Poora content yahan likhein — newlines ke liye \\n use karein"}
 CONTENT_END
+
+CONTENT TYPE VALUES:
+- YouTube script ke liye: "script"
+- Instagram caption ke liye: "caption"  
+- Hashtags ke liye: "hashtags"
+- Ideas ke liye: "ideas"
+
+CONTENT FORMAT RULES:
+- Content field mein newlines ke liye \\n use karein
+- Content field mein single quotes ' use karein, double quotes nahi
+- JSON bilkul valid hona chahiye
+- Script mein [HOOK] [KAHANI] [CLIMAX] [OUTRO] sections zaroor hon
+- Pehle ek line message likhein, phir CONTENT_START block
+
+EXAMPLE:
+Yeh lo aapki horror script! 🔥
+
+CONTENT_START
+{"type":"script","title":"Ghar Ka Raaz","content":"[HOOK 🎬]\\nKya aapne kabhi socha...\\n\\n[KAHANI ⭐]\\nEk baar ki baat hai...\\n\\n[CLIMAX 🔥]\\nTabhi woh muda...\\n\\n[OUTRO 🙏]\\nSubscribe karein!"}
+CONTENT_END
+
+VOICE: Horror script ready hai — bilkul viral hogi!
 
 MOOD RULES:
 - Happy → aur exciting banao, celebrate karein
@@ -687,17 +709,74 @@ function addV(text) {
   // Remove VOICE: line from display
   display = display.replace(/VOICE:\s*.+?(?:\n|$)/g, '').trim();
 
+  // Try to find and parse CONTENT block
   const cm = display.match(/CONTENT_START\s*([\s\S]*?)\s*CONTENT_END/);
   if (cm) {
     try {
-      const cd = JSON.parse(cm[1]);
-      display = display.replace(/CONTENT_START[\s\S]*?CONTENT_END/,'').trim() || 'Yeh lo content! 🔥';
-      cHtml = `<div class="ccard"><div class="ccard-h">◈ ${(cd.title||'CONTENT').toUpperCase()} ◈<button class="ccopy" onclick="copyText(this,'${(cd.content||'').replace(/'/g,"\\'")}')">COPY</button></div><div class="ccard-b">${(cd.content||'').replace(/\n/g,'<br>')}</div></div>`;
-    } catch(e) { display = display.replace(/CONTENT_START[\s\S]*?CONTENT_END/,'').trim(); }
+      // Clean the JSON string
+      let jsonStr = cm[1].trim();
+      const cd = JSON.parse(jsonStr);
+      display = display.replace(/CONTENT_START[\s\S]*?CONTENT_END/,'').trim();
+      if (!display) display = 'Yeh lo! 🔥';
+
+      // Format content nicely
+      const contentFormatted = (cd.content || '').replace(/\\n/g, '\n');
+      const contentEscaped = contentFormatted.replace(/'/g, "\\'").replace(/\n/g, '\\n');
+
+      cHtml = `
+        <div class="ccard">
+          <div class="ccard-h">
+            ◈ ${(cd.title || 'CONTENT').toUpperCase()} ◈
+            <div style="display:flex;gap:6px;">
+              <button class="ccopy" onclick="copyContent('${contentEscaped}', this)">📋 COPY</button>
+              <button class="ccopy" onclick="downloadContent('${contentEscaped}', '${(cd.title||'content').replace(/'/g,"\\'")}')">💾 SAVE</button>
+            </div>
+          </div>
+          <div class="ccard-b">${contentFormatted.replace(/\n/g,'<br>').replace(/\[([^\]]+)\]/g,'<strong style="color:var(--holo)">[$1]</strong>')}</div>
+        </div>`;
+    } catch(e) {
+      // JSON parse failed — show raw content
+      const raw = cm[1].trim();
+      display = display.replace(/CONTENT_START[\s\S]*?CONTENT_END/,'').trim();
+      if (!display) display = 'Content ready hai:';
+      cHtml = `
+        <div class="ccard">
+          <div class="ccard-h">◈ CONTENT ◈
+            <button class="ccopy" onclick="copyContent('${raw.replace(/'/g,"\\'")}', this)">📋 COPY</button>
+          </div>
+          <div class="ccard-b">${raw.replace(/\n/g,'<br>')}</div>
+        </div>`;
+    }
   }
-  div.innerHTML = `<div class="mavatar">🤖</div><div><div class="mbubble">${display.replace(/\n/g,'<br>')}${cHtml}</div><div class="mtime">${getTime()}</div></div>`;
+
+  div.innerHTML = `
+    <div class="mavatar">🤖</div>
+    <div>
+      <div class="mbubble">${display.replace(/\n/g,'<br>')}${cHtml}</div>
+      <div class="mtime">${getTime()}</div>
+    </div>`;
   area.appendChild(div);
   scrollD();
+}
+
+function copyContent(text, btn) {
+  const decoded = text.replace(/\\n/g, '\n').replace(/\\'/g, "'");
+  navigator.clipboard.writeText(decoded).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ COPIED!';
+    setTimeout(() => { btn.textContent = orig; }, 2000);
+  });
+}
+
+function downloadContent(text, title) {
+  const decoded = text.replace(/\\n/g, '\n').replace(/\\'/g, "'");
+  const blob = new Blob([decoded], {type: 'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (title || 'vidhi-content') + '.txt';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function addU(text) {
