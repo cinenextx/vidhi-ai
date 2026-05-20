@@ -202,9 +202,26 @@ body::after{content:'';position:fixed;top:-2px;left:0;right:0;height:2px;backgro
 
 <!-- NEWS PANEL -->
 <div class="panel" id="panel-news">
-  <div style="font-size:0.62rem;color:var(--muted);font-family:'Share Tech Mono',monospace;margin-bottom:4px;">◈ INDIA TOP NEWS — LIVE</div>
-  <div class="news-grid" id="newsGrid">
-    <div style="color:var(--muted);font-size:0.75rem;font-family:'Share Tech Mono',monospace;">Loading news... Setup mein NewsAPI key daalo.</div>
+  <div style="font-size:0.62rem;color:var(--muted);font-family:'Share Tech Mono',monospace;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+    <span>◈ INDIA LIVE NEWS — GOOGLE NEWS</span>
+    <div style="display:flex;gap:6px;">
+      <button class="hbtn" onclick="setNewsLang('hi')" id="nbtn-hi" style="border-color:var(--holo);color:var(--holo);">हिंदी</button>
+      <button class="hbtn" onclick="setNewsLang('en')" id="nbtn-en">English</button>
+    </div>
+  </div>
+  <iframe id="newsFrame"
+    src="https://news.google.com/news/rss/headlines/section/geo/India?hl=hi&gl=IN&ceid=IN:hi"
+    style="width:100%;height:100%;border:none;background:#000;flex:1;min-height:500px;"
+    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+    title="India Live News">
+  </iframe>
+  <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+    <button class="hbtn" onclick="setNewsTopic('headlines')" style="font-size:0.55rem;">🇮🇳 Top Headlines</button>
+    <button class="hbtn" onclick="setNewsTopic('business')" style="font-size:0.55rem;">💼 Business</button>
+    <button class="hbtn" onclick="setNewsTopic('technology')" style="font-size:0.55rem;">💻 Technology</button>
+    <button class="hbtn" onclick="setNewsTopic('entertainment')" style="font-size:0.55rem;">🎬 Entertainment</button>
+    <button class="hbtn" onclick="setNewsTopic('sports')" style="font-size:0.55rem;">🏏 Sports</button>
+    <button class="hbtn" onclick="askVidhiNews()" style="font-size:0.55rem;border-color:var(--holo3);color:var(--holo3);">💬 VIDHI se poochho</button>
   </div>
 </div>
 
@@ -529,38 +546,44 @@ function getWeatherTip(main, temp) {
 }
 
 // ===== NEWS =====
-async function fetchNews() {
-  if (!keys.news) return;
-  document.getElementById('n-widget').textContent = '📰 Loading...';
-  try {
-    // Using a CORS proxy for newsapi
-    const url = `https://newsapi.org/v2/top-headlines?country=in&pageSize=10&apiKey=${keys.news}`;
-    const r = await fetch(url);
-    const d = await r.json();
-    if (d.status !== 'ok') throw new Error(d.message);
+let newsLang = 'hi';
+let newsTopic = 'headlines';
 
-    document.getElementById('n-widget').textContent = `📰 ${d.articles.length} News`;
-    const grid = document.getElementById('newsGrid');
-    grid.innerHTML = '';
-    d.articles.forEach((a, i) => {
-      const div = document.createElement('div');
-      div.className = 'news-card';
-      const time = new Date(a.publishedAt).toLocaleTimeString('hi-IN', {hour:'2-digit',minute:'2-digit'});
-      div.innerHTML = `
-        <div class="news-source">${a.source.name} • ${time}</div>
-        <div class="news-title">${a.title}</div>
-        ${a.description ? `<div class="news-desc">${a.description.substring(0,100)}...</div>` : ''}
-        <div class="news-ask">💬 VIDHI se poochho → click karein</div>`;
-      div.onclick = () => {
-        switchTab('chat');
-        qs(`Yeh news ke baare mein batao: "${a.title}" — kya yeh important hai? Aur cinenextx ya SACHCHI_HORROR_KAHANI ke liye koi content idea ban sakta hai isse?`);
-      };
-      grid.appendChild(div);
-    });
-  } catch(e) {
-    document.getElementById('n-widget').textContent = '📰 News';
-    document.getElementById('newsGrid').innerHTML = `<div style="color:#ff8888;font-size:0.75rem;font-family:'Share Tech Mono',monospace;">News load nahi ho raha. NewsAPI key check karein ya newsapi.org ka free plan limit cross ho gaya ho sakta hai.</div>`;
-  }
+function setNewsLang(lang) {
+  newsLang = lang;
+  document.getElementById('nbtn-hi').style.borderColor = lang === 'hi' ? 'var(--holo)' : '';
+  document.getElementById('nbtn-hi').style.color = lang === 'hi' ? 'var(--holo)' : '';
+  document.getElementById('nbtn-en').style.borderColor = lang === 'en' ? 'var(--holo)' : '';
+  document.getElementById('nbtn-en').style.color = lang === 'en' ? 'var(--holo)' : '';
+  updateNewsFrame();
+}
+
+function setNewsTopic(topic) {
+  newsTopic = topic;
+  updateNewsFrame();
+}
+
+function updateNewsFrame() {
+  const frame = document.getElementById('newsFrame');
+  const langCode = newsLang === 'hi' ? 'hi&gl=IN&ceid=IN:hi' : 'en-IN&gl=IN&ceid=IN:en-IN';
+  const topicMap = {
+    headlines: `https://news.google.com/news/rss/headlines/section/geo/India?hl=${langCode}`,
+    business: `https://news.google.com/news/rss/headlines/section/topic/BUSINESS?hl=${langCode}`,
+    technology: `https://news.google.com/news/rss/headlines/section/topic/TECHNOLOGY?hl=${langCode}`,
+    entertainment: `https://news.google.com/news/rss/headlines/section/topic/ENTERTAINMENT?hl=${langCode}`,
+    sports: `https://news.google.com/news/rss/headlines/section/topic/SPORTS?hl=${langCode}`,
+  };
+  frame.src = topicMap[newsTopic] || topicMap.headlines;
+}
+
+function askVidhiNews() {
+  switchTab('chat');
+  qs('Aaj India mein kya important chal raha hai? Latest news aur trends batao — aur mere channels ke liye koi content idea hai kya?');
+}
+
+async function fetchNews() {
+  // Now using Google News iframe — no API needed
+  document.getElementById('n-widget').textContent = '📰 Live News';
 }
 
 // ===== MUSIC =====
